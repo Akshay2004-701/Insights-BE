@@ -1,10 +1,18 @@
 package com.vision.insights.service
 
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
+import kotlinx.coroutines.async
+import kotlinx.coroutines.runBlocking
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.bson.json.JsonObject
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.io.File
 import java.io.IOException
@@ -15,19 +23,19 @@ class UploadService(private val okHttpClient: OkHttpClient) {
     companion object {
         private const val BASE_URL = "https://api.pinata.cloud/v3"
         private const val UPLOADS_URL = "https://uploads.pinata.cloud/v3"
+        private const val GATEWAY_URL = "https://lavender-efficient-wren-990.mypinata.cloud/ipfs/"
         private val JSON_MEDIA_TYPE = "application/json".toMediaType()
     }
 
-    // Replace with your actual token
-    private val authToken: String = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJjYzFmM2I5Yi01YjgwLTQ1MzMtOGMyOS01ZWM5YzkxOGUwZGMiLCJlbWFpbCI6ImFrc2hheXRoMjAwNEBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJGUkExIn0seyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiOWQyMzUyMDczOTcxMmJmOWMwYmMiLCJzY29wZWRLZXlTZWNyZXQiOiJkMDhiOWZiM2YwNmI1M2QwY2RmMmNjZjc0MjRkNTk3OTAzNTFlOTU1ZTU4MGI2MGFhOWE5OTZlMGE4MDNmYmRiIiwiZXhwIjoxNzc4MTUwODk4fQ.ui2-yhvmpcw2FEDievPvdrF5pRzjRLhylvARA7EAuMg"
-
+    @Value("\${ipfs.token}")
+    private lateinit var authToken:String
 
     /**
      * Creates a new public group
      * @param name Name of the group
      * @return Response from Pinata API
      */
-    fun createGroup(name: String): String {
+    fun createGroup(name: String): String  = runBlocking{
         val json = """
             {
                 "name": "$name",
@@ -44,7 +52,10 @@ class UploadService(private val okHttpClient: OkHttpClient) {
             .addHeader("Content-Type", "application/json")
             .build()
 
-        return executeRequest(request)
+        val response = async { okHttpClient.newCall(request).execute() }
+        val result = response.await().body?.string().also { println(it) }
+        return@runBlocking result?.let { getGroupId(it) }!!
+
     }
 
     /**
@@ -60,7 +71,7 @@ class UploadService(private val okHttpClient: OkHttpClient) {
         name: String,
         groupId: String,
         network: String = "public"
-    ): String {
+    ): String = runBlocking {
         val requestBody = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
             .addFormDataPart("network", network)
@@ -75,59 +86,74 @@ class UploadService(private val okHttpClient: OkHttpClient) {
             .addHeader("Authorization", "Bearer $authToken")
             .build()
 
-        return executeRequest(request)
+        val response = async { okHttpClient.newCall(request).execute() }
+        val result = response.await().body?.string().also { println(it) }
+        val cid = result?.let { getCid(it) }
+        return@runBlocking "$GATEWAY_URL$cid"
     }
 
     /**
      * Lists all files in the public group
      * @return Response from Pinata API
      */
-    fun listFiles(): String {
-        val request = Request.Builder()
-            .url("$BASE_URL/files/public")
-            .get()
-            .addHeader("Authorization", "Bearer $authToken")
-            .build()
-
-        return executeRequest(request)
-    }
+//    fun listFiles(groupId: String): String {
+//        val request = Request.Builder()
+//            .url("$BASE_URL/files/public?group=$groupId")
+//            .get()
+//            .addHeader("Authorization", "Bearer $authToken")
+//            .build()
+//
+//        return executeRequest(request)
+//    }
 
     /**
      * Gets file details by ID
      * @param id File ID
      * @return Response from Pinata API
      */
-    fun getFileById(id: String): String {
-        val request = Request.Builder()
-            .url("$BASE_URL/files/public/$id")
-            .get()
-            .addHeader("Authorization", "Bearer $authToken")
-            .build()
+//    fun getFileById(id: String): String {
+//        val request = Request.Builder()
+//            .url("$BASE_URL/files/public/$id")
+//            .get()
+//            .addHeader("Authorization", "Bearer $authToken")
+//            .build()
+//
+//        return executeRequest(request)
+//    }
 
-        return executeRequest(request)
+//    /**
+//     * Deletes a file by ID
+//     * @param id File ID
+//     * @return Response from Pinata API
+//     */
+//    fun deleteFile(id: String): String {
+//        val request = Request.Builder()
+//            .url("$BASE_URL/files/public/$id")
+//            .delete()
+//            .addHeader("Authorization", "Bearer $authToken")
+//            .build()
+//
+//        return executeRequest(request)
+//    }
+
+
+    private fun getCid(response: String): String? {
+        // Remove leading '"' and trailing '"' (plus any newlines)
+        val trimmed = response.trim().removePrefix("\"").removeSuffix("\"")
+        // Un-escape the JSON in one go
+        val unescaped = trimmed.replace("\\\"", "\"")
+        val objectMapper = ObjectMapper()
+        val rootNode = objectMapper.readTree(unescaped)
+        return rootNode.path("data").path("cid").asText(null)
     }
 
-    /**
-     * Deletes a file by ID
-     * @param id File ID
-     * @return Response from Pinata API
-     */
-    fun deleteFile(id: String): String {
-        val request = Request.Builder()
-            .url("$BASE_URL/files/public/$id")
-            .delete()
-            .addHeader("Authorization", "Bearer $authToken")
-            .build()
-
-        return executeRequest(request)
-    }
-
-    private fun executeRequest(request: Request): String {
-        return try {
-            val response = okHttpClient.newCall(request).execute()
-            response.body?.string() ?: throw IOException("Empty response body")
-        } catch (e: Exception) {
-            throw IOException("Failed to execute request: ${e.message}", e)
-        }
+    private fun getGroupId(response: String): String? {
+        // Remove leading '"' and trailing '"' (plus any newlines)
+        val trimmed = response.trim().removePrefix("\"").removeSuffix("\"")
+        // Un-escape the JSON in one go
+        val unescaped = trimmed.replace("\\\"", "\"")
+        val mapper = ObjectMapper()
+        val root = mapper.readTree(unescaped)
+        return root.path("data").path("id").asText(null)
     }
 }

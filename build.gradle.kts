@@ -24,6 +24,8 @@ dependencies {
 	implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("com.squareup.okhttp3:okhttp:4.9.3")
+	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
+	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.6.0")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
