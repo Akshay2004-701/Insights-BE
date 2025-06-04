@@ -2,6 +2,7 @@ package com.vision.insights.repository
 
 import com.vision.insights.model.Cam
 import com.vision.insights.model.Footage
+import com.vision.insights.model.Insights
 import com.vision.insights.model.User
 import org.springframework.data.mongodb.repository.MongoRepository
 import org.springframework.data.mongodb.repository.Query
@@ -24,3 +25,6 @@ interface FootageRepo:MongoRepository<Footage,String>{
     @Query("{ 'camId' : ?0 }")
     fun findAllByCamId(camId:String):List<Footage>
 }
+
+@Repository
+interface InsightsRepo:MongoRepository<Insights,String>

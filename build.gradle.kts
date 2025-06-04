@@ -26,6 +26,14 @@ dependencies {
 	implementation("com.squareup.okhttp3:okhttp:4.9.3")
 	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
 	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.6.0")
+
+	implementation("org.bytedeco:javacv:1.5.9")
+	implementation("org.bytedeco:javacv-platform:1.5.9")
+
+	// For better memory management and faster processing
+	implementation("org.bytedeco:ffmpeg:6.0-1.5.9")
+	implementation("org.bytedeco:ffmpeg-platform:6.0-1.5.9")
+
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
